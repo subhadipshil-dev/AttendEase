@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Subject, ClassSession } from '../utils/attendanceMath';
 import type { Holiday } from '../utils/dateUtils';
+import LandingPage from '../components/LandingPage';
 import OnboardingFlow from '../components/OnboardingFlow';
 import HomeScreen from '../components/HomeScreen';
 import AttendanceScreen from '../components/AttendanceScreen';
@@ -10,14 +11,66 @@ import ScheduleScreen from '../components/ScheduleScreen';
 import PracticalsScreen, { PracticalSubmission } from '../components/PracticalsScreen';
 import ProfileScreen from '../components/ProfileScreen';
 
-type Tab = 'home' | 'schedule' | 'attendance' | 'practicals' | 'profile';
+type Tab = 'home' | 'attendance' | 'schedule' | 'practicals' | 'profile';
 
-const NAV_ITEMS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'home', icon: '⌂', label: 'Home' },
-  { id: 'schedule', icon: '▦', label: 'Schedule' },
-  { id: 'attendance', icon: '◉', label: 'Attendance' },
-  { id: 'practicals', icon: '☰', label: 'Practicals' },
-  { id: 'profile', icon: '⚙', label: 'Settings' },
+interface NavItem {
+  id: Tab;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 11l9-8 9 8" />
+        <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+      </svg>
+    ),
+  },
+  {
+    id: 'attendance',
+    label: 'Attendance',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 12.5l2.8 2.8L16 9.5" />
+      </svg>
+    ),
+  },
+  {
+    id: 'schedule',
+    label: 'Schedule',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4.5" width="18" height="16" rx="2" />
+        <path d="M16 2.5v4M8 2.5v4M3 10h18" />
+      </svg>
+    ),
+  },
+  {
+    id: 'practicals',
+    label: 'Practicals',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 2.5v6.2L4.3 17a2 2 0 0 0 1.8 3h11.8a2 2 0 0 0 1.8-3L15 8.7V2.5" />
+        <path d="M9 2.5h6" />
+      </svg>
+    ),
+  },
+  {
+    id: 'profile',
+    label: 'Profile',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="10" r="3" />
+        <path d="M6.8 18.5c1-2.8 2.8-4 5.2-4s4.2 1.2 5.2 4" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Home() {
@@ -29,6 +82,7 @@ export default function Home() {
   const [targetPercent, setTargetPercent] = useState(75);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [mounted, setMounted] = useState(false);
+  const [startedSetup, setStartedSetup] = useState(false);
 
   // Load from localStorage
   useEffect(() => {
@@ -98,12 +152,13 @@ export default function Home() {
   };
 
   const resetAll = () => {
-    if (window.confirm('Reset all data? This cannot be undone.')) {
+    if (window.confirm('Reset all registry data? This cannot be undone.')) {
       setSubjects([]);
       setSchedule([]);
       setSessions([]);
       setSubmissions([]);
       setHolidays([]);
+      setStartedSetup(false);
       localStorage.clear();
     }
   };
@@ -111,19 +166,25 @@ export default function Home() {
   if (!mounted) {
     return (
       <div className="app">
-        <div className="loader-screen" style={{ minHeight: '100vh' }}>
-          <div className="spinner" />
+        <div className="loader-screen">
+          <div className="font-display" style={{ fontSize: '20px', color: 'var(--text-muted)' }}>
+            Loading Ledger...
+          </div>
         </div>
       </div>
     );
   }
 
-  const isSetup = subjects.length === 0 || schedule.length === 0;
+  const isSetup = subjects.length > 0 && schedule.length > 0;
 
   return (
     <div className="app">
-      {isSetup ? (
-        <OnboardingFlow onComplete={onUploadComplete} />
+      {!isSetup ? (
+        !startedSetup ? (
+          <LandingPage onStart={() => setStartedSetup(true)} />
+        ) : (
+          <OnboardingFlow onComplete={onUploadComplete} />
+        )
       ) : (
         <>
           {activeTab === 'home' && (
@@ -184,8 +245,9 @@ export default function Home() {
                 className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
                 onClick={() => setActiveTab(item.id)}
               >
-                <span className="nav-icon">{item.icon}</span>
-                <span className="nav-label">{item.label}</span>
+                <div className="active-indicator" />
+                {item.icon}
+                <span>{item.label}</span>
               </button>
             ))}
           </nav>

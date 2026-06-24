@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { Subject } from '../utils/attendanceMath';
-import { toDateString, formatDate } from '../utils/dateUtils';
+import { toDateString } from '../utils/dateUtils';
 
 export interface PracticalSubmission {
   id: string;
@@ -59,68 +59,75 @@ export default function PracticalsScreen({
   const pending = submissions.filter((s) => !s.completed).length;
 
   return (
-    <div className="screen">
-      <div className="screen-header">
-        <h1>Practicals</h1>
+    <div className="screen rise" style={{ animationDelay: '0ms' }}>
+      {/* Header */}
+      <div className="screen-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 className="font-display" style={{ fontSize: '20px', fontWeight: 560 }}>Practicals Register</h1>
         <button className="btn-secondary btn-sm" onClick={() => setShowAdd(!showAdd)}>
           {showAdd ? 'Cancel' : '+ Add'}
         </button>
       </div>
 
       {pending > 0 && (
-        <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>
+        <div className="font-mono" style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '16px' }}>
           {pending} pending submission{pending !== 1 ? 's' : ''}
         </div>
       )}
 
-      {/* Add form */}
+      {/* Inline Form */}
       {showAdd && (
         <form className="inline-add" onSubmit={handleSubmit}>
-          <h3>New submission</h3>
+          <h3 className="font-display">New Submission Card</h3>
           <div className="form-group">
-            <label className="form-label">Title</label>
+            <label className="form-label">Record Title</label>
             <input
-              placeholder="Chemistry Record"
+              placeholder="e.g., Chemistry Record"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Subject</label>
+            <label className="form-label">Course Subject</label>
             <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} required>
-              <option value="">Select subject</option>
+              <option value="">Select subject...</option>
               {subjects.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Due date</label>
+            <label className="form-label">Due Date</label>
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
           </div>
           <div className="form-group">
             <label className="form-label">Notes (optional)</label>
             <input
-              placeholder="Any details…"
+              placeholder="Any details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
           <div className="inline-add-actions">
-            <button type="button" className="btn-secondary flex-1" onClick={() => setShowAdd(false)}>Cancel</button>
-            <button type="submit" className="btn-primary flex-1">Save</button>
+            <button type="button" className="btn-secondary flex-1" onClick={() => setShowAdd(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary flex-1">
+              Save Entry
+            </button>
           </div>
         </form>
       )}
 
-      {/* Task list */}
+      {/* Task Checklist list */}
       <div className="task-list">
         {sorted.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📋</div>
-            <h3>No submissions</h3>
-            <p>Add practical assignments to track deadlines.</p>
+            <div className="empty-icon">📝</div>
+            <h3>No practical logs</h3>
+            <p>Add pending lab logs to compile record books.</p>
           </div>
         ) : (
           sorted.map((sub) => {
@@ -165,7 +172,9 @@ export default function PracticalsScreen({
                   </div>
                 </div>
                 {badgeText && <span className={`task-badge ${badgeClass}`}>{badgeText}</span>}
-                <button className="task-delete" onClick={() => onDelete(sub.id)}>×</button>
+                <button className="task-delete" onClick={() => onDelete(sub.id)}>
+                  ×
+                </button>
               </div>
             );
           })

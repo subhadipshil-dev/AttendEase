@@ -5,8 +5,6 @@ import type { Subject, ClassSession } from '../utils/attendanceMath';
 import { getCalendarGrid, toDateString, getDayOfWeek } from '../utils/dateUtils';
 import type { Holiday } from '../utils/dateUtils';
 
-const SUBJECT_COLORS = ['#2563EB', '#22C55E', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#F97316'];
-
 interface ScheduleScreenProps {
   subjects: Subject[];
   schedule: Array<{ subjectId: string; day: string; startTime: string; endTime: string }>;
@@ -30,16 +28,27 @@ export default function ScheduleScreen({
   const [selectedDate, setSelectedDate] = useState(toDateString(today));
   const [view, setView] = useState<ViewMode>('month');
 
-  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
   const prevMonth = () => {
-    if (month === 0) { setMonth(11); setYear(year - 1); }
-    else setMonth(month - 1);
+    if (month === 0) {
+      setMonth(11);
+      setYear(year - 1);
+    } else {
+      setMonth(month - 1);
+    }
   };
 
   const nextMonth = () => {
-    if (month === 11) { setMonth(0); setYear(year + 1); }
-    else setMonth(month + 1);
+    if (month === 11) {
+      setMonth(0);
+      setYear(year + 1);
+    } else {
+      setMonth(month + 1);
+    }
   };
 
   const calendarCells = getCalendarGrid(year, month);
@@ -47,16 +56,24 @@ export default function ScheduleScreen({
   const daySlots = schedule.filter((s) => s.day === selectedDayName);
   const dayHoliday = holidays.find((h) => h.date === selectedDate);
 
-  const formatTime12 = (t: string) => {
-    const [h, m] = t.split(':').map(Number);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${ampm}`;
+  const getWeekDays = (selectedDateStr: string) => {
+    const selected = new Date(selectedDateStr + 'T00:00:00');
+    const startOfWeek = new Date(selected);
+    startOfWeek.setDate(selected.getDate() - selected.getDay()); // Sunday
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      days.push({
+        date: d,
+        dateString: toDateString(d),
+      });
+    }
+    return days;
   };
 
-  const getSubjectColor = (subjectId: string) => {
-    const idx = subjects.findIndex((s) => s.id === subjectId);
-    return SUBJECT_COLORS[idx % SUBJECT_COLORS.length];
-  };
+  const weekCells = getWeekDays(selectedDate);
 
   const hasClassOnDate = (dateStr: string) => {
     const dayName = getDayOfWeek(dateStr);
@@ -64,12 +81,13 @@ export default function ScheduleScreen({
   };
 
   return (
-    <div className="screen">
+    <div className="screen rise" style={{ animationDelay: '0ms' }}>
+      {/* Header */}
       <div className="screen-header">
-        <h1>Schedule</h1>
+        <h1 className="font-display" style={{ fontSize: '20px', fontWeight: 560 }}>Academic Schedule</h1>
       </div>
 
-      {/* View mode toggles */}
+      {/* View Segmented Toggle */}
       <div className="calendar-toggles">
         {(['month', 'week', 'day'] as ViewMode[]).map((v) => (
           <button
@@ -82,111 +100,154 @@ export default function ScheduleScreen({
         ))}
       </div>
 
-      {/* Calendar nav */}
-      <div className="calendar-nav">
-        <h2>{MONTHS[month]} {year}</h2>
-        <div className="calendar-nav-btns">
-          <button className="calendar-nav-btn" onClick={prevMonth}>‹</button>
-          <button className="calendar-nav-btn" onClick={nextMonth}>›</button>
-        </div>
-      </div>
+      {/* Navigation and Calendar grids */}
+      {view !== 'day' && (
+        <div className="rise" style={{ animationDelay: '50ms' }}>
+          <div className="calendar-nav">
+            <h2>
+              {MONTHS[month]} {year}
+            </h2>
+            {view === 'month' && (
+              <div className="calendar-nav-btns">
+                <button className="calendar-nav-btn" onClick={prevMonth}>
+                  ‹
+                </button>
+                <button className="calendar-nav-btn" onClick={nextMonth}>
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
 
-      {/* Calendar grid */}
-      {view === 'month' && (
-        <>
           <div className="calendar-weekdays">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-              <div key={i} className="calendar-weekday">{d}</div>
+              <div key={i} className="calendar-weekday">
+                {d}
+              </div>
             ))}
           </div>
-          <div className="calendar-days">
-            {calendarCells.map((cell, i) => {
-              const ds = cell.dateString;
-              const isToday = toDateString(today) === ds;
-              const isSelected = selectedDate === ds && !isToday;
-              const hasClass = cell.isCurrentMonth && hasClassOnDate(ds);
 
-              return (
-                <div
-                  key={i}
-                  className={`calendar-cell ${!cell.isCurrentMonth ? 'other' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
-                  onClick={() => cell.isCurrentMonth && setSelectedDate(ds)}
-                >
-                  {cell.date.getDate()}
-                  {hasClass && !isToday && <div className="has-class" />}
-                </div>
-              );
-            })}
-          </div>
-        </>
+          {view === 'month' ? (
+            <div className="calendar-days">
+              {calendarCells.map((cell, i) => {
+                const ds = cell.dateString;
+                const isToday = toDateString(today) === ds;
+                const isSelected = selectedDate === ds && !isToday;
+                const hasClass = cell.isCurrentMonth && hasClassOnDate(ds);
+
+                return (
+                  <div
+                    key={i}
+                    className={`calendar-cell ${!cell.isCurrentMonth ? 'other' : ''} ${
+                      isToday ? 'today' : ''
+                    } ${isSelected ? 'selected' : ''}`}
+                    onClick={() => cell.isCurrentMonth && setSelectedDate(ds)}
+                  >
+                    {cell.date.getDate()}
+                    {hasClass && <div className="has-class" />}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="calendar-days">
+              {weekCells.map((cell, i) => {
+                const ds = cell.dateString;
+                const isToday = toDateString(today) === ds;
+                const isSelected = selectedDate === ds && !isToday;
+                const hasClass = hasClassOnDate(ds);
+
+                return (
+                  <div
+                    key={i}
+                    className={`calendar-cell ${isToday ? 'today' : ''} ${
+                      isSelected ? 'selected' : ''
+                    }`}
+                    onClick={() => setSelectedDate(ds)}
+                  >
+                    {cell.date.getDate()}
+                    {hasClass && <div className="has-class" />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Day schedule */}
-      <div className="day-schedule mt-16">
-        <div className="section-label">
-          {selectedDate === toDateString(today) ? 'Today' : new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+      {/* Selected Date Day Schedule */}
+      <div className="day-schedule rise" style={{ animationDelay: '100ms' }}>
+        <div className="section-label" style={{ marginBottom: '12px' }}>
+          {selectedDate === toDateString(today)
+            ? 'Today'
+            : new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              })}
         </div>
 
         {dayHoliday ? (
           <div className="day-schedule-item">
             <div className="day-schedule-info">
               <div className="day-schedule-name">🎉 {dayHoliday.name}</div>
-              <div className="day-schedule-time">Holiday — no classes</div>
+              <div className="day-schedule-time">Holiday — register is suspended</div>
             </div>
           </div>
         ) : daySlots.length === 0 ? (
           <div className="empty-state" style={{ padding: '32px 16px' }}>
-            <p>No classes on {selectedDayName}s</p>
+            <p>No periods scheduled for {selectedDayName}s</p>
           </div>
         ) : (
           daySlots.map((slot, i) => {
             const sub = subjects.find((s) => s.id === slot.subjectId);
-            const session = sessions.find((s) => s.date === selectedDate && s.subjectId === slot.subjectId);
+            const session = sessions.find(
+              (s) => s.date === selectedDate && s.subjectId === slot.subjectId
+            );
+            const currentStatus = session?.status || null;
+
             return (
-              <div key={i} className="day-schedule-item">
-                <div className="day-schedule-color" style={{ background: getSubjectColor(slot.subjectId) }} />
-                <div className="day-schedule-info">
-                  <div className="day-schedule-name">{sub?.name || slot.subjectId}</div>
-                  <div className="day-schedule-time">
-                    {formatTime12(slot.startTime)} – {formatTime12(slot.endTime)}
-                    {sub?.teacher ? ` · ${sub.teacher}` : ''}
-                    {sub?.room ? ` · ${sub.room}` : ''}
+              <div
+                key={i}
+                className="day-schedule-item flex-col"
+                style={{ alignItems: 'stretch' }}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="day-schedule-info">
+                    <div className="day-schedule-name">{sub?.name || slot.subjectId}</div>
+                    <div className="day-schedule-time">
+                      {slot.startTime} – {slot.endTime} {sub?.room ? `· Room ${sub.room}` : ''}
+                    </div>
                   </div>
-                </div>
-                {session ? (
                   <span
-                    className="task-badge"
-                    style={{
-                      background:
-                        session.status === 'present' ? 'rgba(34,197,94,0.12)' :
-                        session.status === 'absent' ? 'rgba(239,68,68,0.12)' :
-                        'rgba(245,158,11,0.12)',
-                      color:
-                        session.status === 'present' ? 'var(--success)' :
-                        session.status === 'absent' ? 'var(--danger)' :
-                        'var(--warning)',
-                    }}
+                    className="font-mono"
+                    style={{ fontSize: '11px', color: 'var(--text-faint)', alignSelf: 'flex-start' }}
                   >
-                    {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                    {sub?.teacher || ''}
                   </span>
-                ) : (
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button
-                      className="action-btn present btn-sm"
-                      style={{ padding: '4px 8px', fontSize: 11 }}
-                      onClick={(e) => { e.stopPropagation(); sub && onLogAttendance(selectedDate, sub.id, 'present'); }}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      className="action-btn absent btn-sm"
-                      style={{ padding: '4px 8px', fontSize: 11 }}
-                      onClick={(e) => { e.stopPropagation(); sub && onLogAttendance(selectedDate, sub.id, 'absent'); }}
-                    >
-                      ✗
-                    </button>
-                  </div>
-                )}
+                </div>
+
+                {/* Direct logger buttons in Schedule page */}
+                <div className="t-actions" style={{ marginTop: '10px' }}>
+                  <button
+                    className={`action-btn present ${currentStatus === 'present' ? 'selected' : ''}`}
+                    onClick={() => sub && onLogAttendance(selectedDate, sub.id, 'present')}
+                  >
+                    Present
+                  </button>
+                  <button
+                    className={`action-btn absent ${currentStatus === 'absent' ? 'selected' : ''}`}
+                    onClick={() => sub && onLogAttendance(selectedDate, sub.id, 'absent')}
+                  >
+                    Absent
+                  </button>
+                  <button
+                    className={`action-btn cancelled ${currentStatus === 'cancelled' ? 'selected' : ''}`}
+                    onClick={() => sub && onLogAttendance(selectedDate, sub.id, 'cancelled')}
+                  >
+                    Cancelled
+                  </button>
+                </div>
               </div>
             );
           })
